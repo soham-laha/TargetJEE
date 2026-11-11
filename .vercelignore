@@ -1,0 +1,5 @@
+backend/
+docs/
+.github/
+*.pyc
+__pycache__/
