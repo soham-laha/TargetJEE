@@ -1,0 +1,284 @@
+// TargetJEE Engine — PostgreSQL / Prisma data model
+// Run: npx prisma migrate dev --name initial_targetjee
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Subject {
+  PHYSICS
+  CHEMISTRY
+  MATHEMATICS
+}
+
+enum TargetLevel {
+  JEE_MAIN
+  JEE_ADVANCED
+}
+
+enum QuestionState {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  RETIRED
+  REJECTED
+}
+
+enum SourceType {
+  IMAGE
+  PDF
+  MANUAL
+}
+
+enum AttemptStatus {
+  NOT_VISITED
+  UNANSWERED
+  ANSWERED
+  MARKED
+  ANSWERED_MARKED
+}
+
+enum SessionState {
+  IN_PROGRESS
+  SUBMITTED
+  ABANDONED
+}
+
+enum ConfidenceBand {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+enum TrapSeverity {
+  CARELESS
+  PROCEDURAL
+  CONCEPTUAL
+  DEEP_CONCEPTUAL
+}
+
+enum TimeDeficitReason {
+  CALIBRATED_BUDGET_EXHAUSTED
+}
+
+model User {
+  id               String              @id @default(cuid())
+  email            String              @unique
+  displayName      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  abilitySnapshots AbilitySnapshot[]
+  sessions         TestSession[]
+  calibrationLogs  CalibrationLog[]
+  itemSources      SourceAsset[]       @relation("UploadedBy")
+}
+
+model SourceAsset {
+  id                 String       @id @default(cuid())
+  uploadedById       String
+  uploadedBy         User         @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+  storageKey         String       @unique
+  originalName       String
+  mimeType           String
+  byteSize           Int
+  sha256             String       @unique
+  sourceType         SourceType
+  extractionJson     Json?        // OCR spans, equation regions, diagram anchors, model/version
+  normalizedText     String?      @db.Text
+  parseConfidence    Float?
+  createdAt          DateTime     @default(now())
+  questions          Question[]
+
+  @@index([uploadedById, createdAt])
+}
+
+model Question {
+  id                    String             @id @default(cuid())
+  sourceAssetId         String?
+  sourceAsset           SourceAsset?       @relation(fields: [sourceAssetId], references: [id], onDelete: SetNull)
+  externalKey           String?            @unique
+  subject               Subject
+  chapter               String
+  topic                 String
+  targetLevel           TargetLevel
+  stemLatex             String             @db.Text
+  contextText           String?            @db.Text
+  solutionMethodA       Json               // ordered array of rigorous derivation steps
+  solutionMethodB       Json               // ordered array of shortcut steps
+  avoidanceRule         String             @db.Text
+  answerExplanation     String?            @db.Text
+  state                 QuestionState      @default(DRAFT)
+  generationContract    Json               // immutable raw model response + schema version + prompt hash
+  version               Int                @default(1)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  psychometric          PsychometricParameter?
+  options               QuestionOption[]
+  attempts              UserItemAttempt[]
+  generationAuditEvents GenerationAuditEvent[]
+
+  @@index([subject, chapter, topic, targetLevel, state])
+  @@index([sourceAssetId])
+}
+
+model PsychometricParameter {
+  id              String   @id @default(cuid())
+  questionId      String   @unique
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  discriminationA Decimal  @db.Decimal(4, 3) // [0.500, 2.500]
+  difficultyB     Decimal  @db.Decimal(4, 3) // [-3.000, 3.000]
+  pseudoGuessC    Decimal  @db.Decimal(4, 3) // [0.000, 0.250]
+  betaLogSeconds  Decimal  @db.Decimal(6, 3) // Van der Linden time intensity
+  timePrecisionA  Decimal  @db.Decimal(5, 3) // alpha_i
+  calibrationN    Int      @default(0)
+  calibrationMeta Json?    // fit statistics, drift, reviewer rubric/model version
+  calibratedAt    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model QuestionOption {
+  id                   String              @id @default(cuid())
+  questionId           String
+  question             Question            @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionKey            String              // A, B, C, D — ordering can be per delivery session
+  displayLatex         String              @db.Text
+  canonicalValue       String?             @db.Text // normalized symbolic/numeric value for duplicate check
+  isCorrect            Boolean             @default(false)
+  displayOrder         Int
+  distractor           DistractorArchetype?
+  selectedAttempts     UserItemAttempt[]   @relation("SelectedOption")
+
+  @@unique([questionId, optionKey])
+  @@unique([questionId, displayOrder])
+  @@index([questionId, isCorrect])
+}
+
+model DistractorArchetype {
+  id                 String        @id @default(cuid())
+  optionId           String        @unique
+  option             QuestionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  archetypeCode      String        // e.g. DOUBLE_COUNTED_PSEUDO_FORCE
+  label              String
+  severity           TrapSeverity
+  trapPathSteps      Json          // executable symbolic/numeric transformation trace
+  diagnosticText     String        @db.Text
+  avoidanceRule      String        @db.Text
+  nrmSlopeA          Decimal       @db.Decimal(5, 3) // a_ik
+  nrmInterceptC      Decimal       @db.Decimal(5, 3) // c_ik
+  misconceptionTags  String[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([archetypeCode, severity])
+}
+
+model TestSession {
+  id                    String       @id @default(cuid())
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  state                 SessionState @default(IN_PROGRESS)
+  blueprintJson         Json         // question ids, delivered option shuffle and session parameters
+  startedAt             DateTime     @default(now())
+  submittedAt           DateTime?
+  thetaBefore           Decimal?     @db.Decimal(4, 3)
+  thetaAfter            Decimal?     @db.Decimal(4, 3)
+  speedTau              Decimal?     @db.Decimal(6, 3)
+  brierScore            Decimal?     @db.Decimal(6, 4)
+  expectedCalError      Decimal?     @db.Decimal(6, 4)
+  rawScore              Int?
+  attempts              UserItemAttempt[]
+
+  @@index([userId, state, startedAt])
+}
+
+model UserItemAttempt {
+  id                    String         @id @default(cuid())
+  sessionId             String
+  session               TestSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId            String
+  question              Question       @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  selectedOptionId      String?
+  selectedOption        QuestionOption? @relation("SelectedOption", fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  optionOrderJson       Json           // locked rendering order protects post-hoc analysis
+  status                AttemptStatus  @default(NOT_VISITED)
+  responseTimeMs        Int            @default(0)
+  calibratedBudgetMs    Int
+  extensionMs           Int            @default(0) // grace buffer / time deficit
+  confidence            Decimal?       @db.Decimal(3, 2) // [0.00, 1.00]; required before session submission
+  confidenceReportedAt  DateTime?       // submission transaction rejects a null value for any delivered item
+  confidenceBand        ConfidenceBand?
+  isCorrect             Boolean?
+  pressureTheta         Decimal?       @db.Decimal(5, 3)
+  satoLabel             String?
+  nrmSelectionProb      Decimal?       @db.Decimal(6, 5)
+  timeDeficits          TimeDeficitEvent[]
+  createdAt             DateTime       @default(now())
+  submittedAt           DateTime?
+
+  @@unique([sessionId, questionId])
+  @@index([questionId, isCorrect, submittedAt])
+  @@index([sessionId, status])
+}
+
+model TimeDeficitEvent {
+  id                    String           @id @default(cuid())
+  itemAttemptId         String
+  itemAttempt           UserItemAttempt  @relation(fields: [itemAttemptId], references: [id], onDelete: Cascade)
+  reason                TimeDeficitReason @default(CALIBRATED_BUDGET_EXHAUSTED)
+  addedMs               Int              // exactly 60_000 or 120_000 in the CBT extension protocol
+  budgetExhaustedAtMs   Int              // elapsed response time when the calibrated budget reached 00:00
+  createdAt             DateTime         @default(now())
+
+  @@index([itemAttemptId, createdAt])
+}
+
+model CalibrationLog {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId           String?
+  itemAttemptId       String?
+  confidence          Decimal  @db.Decimal(3, 2)
+  outcome             Boolean
+  confidenceBin       Int
+  brierContribution   Decimal  @db.Decimal(6, 4)
+  createdAt           DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+}
+
+model AbilitySnapshot {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId     String?
+  theta         Decimal  @db.Decimal(4, 3)
+  standardError Decimal? @db.Decimal(5, 3)
+  speedTau      Decimal? @db.Decimal(6, 3)
+  estimator     String   // "3PL_MLE_NEWTON_RAPHSON_v1"
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model GenerationAuditEvent {
+  id           String   @id @default(cuid())
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  eventType    String   // REQUESTED, SCHEMA_VALIDATED, REVIEWED, REJECTED
+  promptHash   String
+  model        String?
+  payload      Json?
+  actor        String   // service, reviewer id, pipeline
+  createdAt    DateTime @default(now())
+
+  @@index([questionId, createdAt])
+}
