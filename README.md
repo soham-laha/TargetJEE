@@ -121,62 +121,81 @@ flowchart LR
 
 ## Psychometric implementation notes
 
+> GitHub renders the equations below with its native `$...$` / `$$...$$` math support.
+
 ### 3PL ability / Birnbaum
 
-For an item `i`, the implementation uses:
+For item $i$, the implementation uses the Birnbaum three-parameter logistic model:
 
-\[
-P_i(\theta)=c_i + \frac{1-c_i}{1+\exp[-1.702 a_i(\theta-b_i)]}
-\]
+$$
+P_i(\theta) = c_i + \frac{1-c_i}{1+\exp\left[-1.702\,a_i(\theta-b_i)\right]}
+$$
 
-`lib/psychometrics.ts` calculates this probability with exponent clamping and obtains a
-bounded `[-3, 3]` MLE through finite-difference Newton–Raphson iterations over completed
-item likelihood. In production, store standard errors and use test information/regularized
-MAP for short drills; label the user-facing estimate as provisional at low information.
+`lib/psychometrics.ts` clamps the exponent and obtains a bounded
+$\theta \in [-3,3]$ MLE using finite-difference Newton–Raphson iterations over completed
+item likelihood. In production, store standard errors and use test information or a
+regularized MAP estimate for short drills; label low-information estimates as provisional.
 
 ### NRM distractor diagnosis
 
-Each wrong `QuestionOption` must own exactly one `DistractorArchetype` and an NRM slope /
+Each wrong `QuestionOption` owns exactly one `DistractorArchetype` and an NRM slope /
 intercept pair. At review, the selected option leads directly to its error description and
-avoidance rule. The UI also derives a selection tendency from:
+avoidance rule. The option-level selection tendency is:
 
-\[
-P_{ik}(\theta) = \frac{\exp(a_{ik}\theta+c_{ik})}{\sum_h\exp(a_{ih}\theta+c_{ih})}
-\]
+$$
+P_{ik}(\theta) =
+\frac{\exp\left(a_{ik}\theta+c_{ik}\right)}
+{\sum_h \exp\left(a_{ih}\theta+c_{ih}\right)}
+$$
 
-These values are **diagnostic parameters**, not a substitute for empirical calibration.
+These are **diagnostic parameters**, not a substitute for empirical calibration.
 
 ### SATO / timing
 
-The response-time model is `ln(T_i) ~ N(beta_i - tau, 1/alpha_i²)`. The reference
-implementation fits the closed-form precision-weighted MLE
-`tau = Σ[alpha_i²(beta_i - ln(T_i))] / Σalpha_i²`, reports its conditional standard error
-`1 / sqrt(Σalpha_i²)`, and evaluates the corresponding normal log-likelihood. It then uses
-the requested hasty-response term:
+The response-time model is:
 
-\[
-\theta^*(t)=\theta-\lambda\max(0,\beta_{seconds}/t-1)
-\]
+$$
+\ln(T_i) \sim \mathcal{N}\!\left(\beta_i-\tau,\;\frac{1}{\alpha_i^2}\right)
+$$
 
-A buffer does not void an attempt. Each extension is recorded separately as a
-`TimeDeficitEvent` and is additionally visible in the review through the conservative
-extension term below, where `g` is accumulated grace seconds and `δ=0.22`:
+The reference implementation fits the precision-weighted estimate:
 
-\[
-\theta^*(t,g)=\theta-\lambda\max(0,\beta_{seconds}/t-1)-\delta\ln(1+g/\beta_{seconds})
-\]
+$$
+\hat{\tau} =
+\frac{\sum_i \alpha_i^2\left(\beta_i-\ln(T_i)\right)}
+{\sum_i \alpha_i^2},
+\qquad
+\operatorname{SE}(\hat{\tau}) = \frac{1}{\sqrt{\sum_i \alpha_i^2}}
+$$
+
+It then applies the requested hasty-response adjustment, where
+$\beta_{\mathrm{seconds}} = \exp(\beta_i)$:
+
+$$
+\theta^*(t)=\theta-\lambda\max\!\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
+$$
+
+A buffer does not void an attempt. Each extension is recorded as a `TimeDeficitEvent` and is
+included in the conservative extension term below, where $g$ is accumulated grace seconds
+and $\delta=0.22$:
+
+$$
+\theta^*(t,g)=
+\theta-\lambda\max\!\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
+-\delta\ln\!\left(1+\frac{g}{\beta_{\mathrm{seconds}}}\right)
+$$
 
 This prevents grace time from silently improving a pressure-adjusted estimate while
 preserving the learner’s response for diagnosis.
 
 ### Metacognition
 
-Every delivered item requires an explicit learner confidence report `f_n ∈ [0,1]` before
-final submission; skipped items may be reported as `0`. The submission gate refuses to lock
-a drill with any missing confidence report. The submission worker calculates Brier score
-`mean((confidence - outcome)²)` and five-bin Expected Calibration Error. Never infer
-psychological diagnosis from one drill; present calibration as a behavior signal over a
-sufficient response window.
+Every delivered item requires an explicit learner confidence report
+$f_n \in [0,1]$ before final submission; skipped items may be reported as $0$. The submission
+gate refuses to lock a drill with missing confidence reports. The submission worker calculates
+the Brier score $\operatorname{mean}[(\mathrm{confidence}-\mathrm{outcome})^2]$ and five-bin
+Expected Calibration Error. Never infer psychological diagnosis from one drill; present
+calibration as a behavior signal over a sufficient response window.
 
 ---
 
