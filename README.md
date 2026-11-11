@@ -153,7 +153,7 @@ These are **diagnostic parameters**, not a substitute for empirical calibration.
 The response-time model is:
 
 $$
-\ln(T_i) \sim \mathcal{N}\!\left(\beta_i-\tau,\;\frac{1}{\alpha_i^2}\right)
+\ln(T_i) \sim \mathcal{N}\left(\beta_i-\tau,\frac{1}{\alpha_i^2}\right)
 $$
 
 The reference implementation fits the precision-weighted estimate:
@@ -163,14 +163,14 @@ $$
 \frac{\sum_i \alpha_i^2\left(\beta_i-\ln(T_i)\right)}
 {\sum_i \alpha_i^2},
 \qquad
-\operatorname{SE}(\hat{\tau}) = \frac{1}{\sqrt{\sum_i \alpha_i^2}}
+\mathrm{SE}(\hat{\tau}) = \frac{1}{\sqrt{\sum_i \alpha_i^2}}
 $$
 
 It then applies the requested hasty-response adjustment, where
 $\beta_{\mathrm{seconds}} = \exp(\beta_i)$:
 
 $$
-\theta^*(t)=\theta-\lambda\max\!\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
+\theta^*(t)=\theta-\lambda\max\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
 $$
 
 A buffer does not void an attempt. Each extension is recorded as a `TimeDeficitEvent` and is
@@ -179,8 +179,8 @@ and $\delta=0.22$:
 
 $$
 \theta^*(t,g)=
-\theta-\lambda\max\!\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
--\delta\ln\!\left(1+\frac{g}{\beta_{\mathrm{seconds}}}\right)
+\theta-\lambda\max\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
+-\delta\ln\left(1+\frac{g}{\beta_{\mathrm{seconds}}}\right)
 $$
 
 This prevents grace time from silently improving a pressure-adjusted estimate while
@@ -191,7 +191,7 @@ preserving the learner’s response for diagnosis.
 Every delivered item requires an explicit learner confidence report
 $f_n \in [0,1]$ before final submission; skipped items may be reported as $0$. The submission
 gate refuses to lock a drill with missing confidence reports. The submission worker calculates
-the Brier score $\operatorname{mean}[(\mathrm{confidence}-\mathrm{outcome})^2]$ and five-bin
+the Brier score $\mathrm{mean}[(\mathrm{confidence}-\mathrm{outcome})^2]$ and five-bin
 Expected Calibration Error. Never infer psychological diagnosis from one drill; present
 calibration as a behavior signal over a sufficient response window.
 
