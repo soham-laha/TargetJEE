@@ -121,8 +121,6 @@ flowchart LR
 
 ## Psychometric implementation notes
 
-> GitHub renders the equations below with its native `$...$` / `$$...$$` math support.
-
 ### 3PL ability / Birnbaum
 
 For item $i$, the implementation uses the Birnbaum three-parameter logistic model:
