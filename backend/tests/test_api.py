@@ -43,6 +43,9 @@ def test_item_validator_rejects_symbolically_equivalent_distractors() -> None:
             "evaluated_latex": value,
             "evaluated_canonical_value": value,
             "diagnosis": "The selection indicates a specific error in the energy ledger.",
+            "first_wrong_pivot": "The learner mixes a pseudo-force ledger with the inertial-frame energy change.",
+            "why_plausible": "Both energy terms look familiar when the rotating frame is introduced.",
+            "valid_when": "The terms represent distinct transfers in one consistent frame.",
             "avoidance_rule": "Write the sign convention before substituting values.",
             "nrm": {"a": -0.2, "c": 0.1},
         }
@@ -59,6 +62,12 @@ def test_item_validator_rejects_symbolically_equivalent_distractors() -> None:
         "correct_derivation": ["Write the inertial kinetic energy.", "Evaluate the endpoint change."],
         "competitive_shortcut": ["Use the radius-squared kinetic-energy scaling."],
         "avoidance_rule": "Keep one consistent frame ledger.",
+        "recovery_check": {
+            "prompt": "Before adding work terms, what must remain consistent?",
+            "choices": ["The reference frame", "The font size", "The option order"],
+            "answer_index": 0,
+            "explanation": "Use one consistent reference-frame ledger before combining energy terms."
+        },
         "options": [
             {"key": "A", "latex": "0", "canonical_value": "0", "is_correct": True, "trap_path": None},
             {"key": "B", "latex": "3m\\omega^2r^2/2", "canonical_value": "3/2*m*w^2*r^2", "is_correct": False, "trap_path": trap("ENDPOINT_SUBSTITUTION", "3/2*m*w^2*r^2")},
@@ -83,6 +92,9 @@ def test_item_validator_rejects_a_trap_with_mismatched_evaluated_value() -> None
         "evaluated_latex": "m",
         "evaluated_canonical_value": "999",
         "diagnosis": "The selection indicates endpoint substitution for a variable force.",
+        "first_wrong_pivot": "The force was frozen at one endpoint instead of tracked across displacement.",
+        "why_plausible": "The starting radius is given explicitly and looks ready to substitute.",
+        "valid_when": "The applied force remains constant throughout the displacement.",
         "avoidance_rule": "Integrate position-dependent force over the full displacement.",
         "nrm": {"a": -0.2, "c": 0.1},
     }

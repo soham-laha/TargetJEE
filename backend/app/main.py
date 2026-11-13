@@ -67,8 +67,25 @@ class TrapPath(BaseModel):
     evaluated_latex: str = Field(min_length=1, max_length=1000)
     evaluated_canonical_value: str = Field(min_length=1, max_length=500)
     diagnosis: str = Field(min_length=20, max_length=800)
+    first_wrong_pivot: str = Field(min_length=20, max_length=800)
+    why_plausible: str = Field(min_length=20, max_length=800)
+    valid_when: str = Field(min_length=12, max_length=500)
     avoidance_rule: str = Field(min_length=12, max_length=300)
     nrm: NrmParameter
+
+class RecoveryCheck(BaseModel):
+    """A verified micro-check used to establish that a diagnostic explanation resolved the doubt."""
+    model_config = ConfigDict(extra="forbid")
+    prompt: str = Field(min_length=12, max_length=600)
+    choices: list[str] = Field(min_length=3, max_length=4)
+    answer_index: int = Field(ge=0, le=3)
+    explanation: str = Field(min_length=20, max_length=800)
+
+    @model_validator(mode="after")
+    def answer_index_exists(self):
+        if self.answer_index >= len(self.choices):
+            raise ValueError("recovery check answer_index must identify one supplied choice")
+        return self
 
 class Option(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -121,6 +138,7 @@ class GeneratedItem(BaseModel):
     correct_derivation: list[str] = Field(min_length=2, max_length=12)
     competitive_shortcut: list[str] = Field(min_length=1, max_length=8)
     avoidance_rule: str = Field(min_length=12, max_length=300)
+    recovery_check: RecoveryCheck
     options: list[Option] = Field(min_length=4, max_length=4)
     psychometrics: PsychometricParameters
     reviewer_flags: list[str] = Field(default_factory=list, max_length=12)
