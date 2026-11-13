@@ -67,6 +67,19 @@ enum TimeDeficitReason {
   CALIBRATED_BUDGET_EXHAUSTED
 }
 
+enum PacingTier {
+  FIRST_EXPOSURE
+  GUIDED
+  EXAM
+  PRESSURE
+}
+
+enum AnswerSwitchSignal {
+  EVIDENCE_LED
+  RECONSIDERED
+  LATE_REACTIVE
+}
+
 model User {
   id               String              @id @default(cuid())
   email            String              @unique
@@ -169,6 +182,10 @@ model DistractorArchetype {
   severity           TrapSeverity
   trapPathSteps      Json          // executable symbolic/numeric transformation trace
   diagnosticText     String        @db.Text
+  firstWrongPivot    String?       @db.Text // earliest invalid assumption/transformation in the evaluated path
+  whyPlausible       String?       @db.Text // evidence-led explanation for why this exact distractor tempts learners
+  validWhen          String?       @db.Text // narrow counterfactual condition under which the route would be valid
+  recoveryCheck      Json?         // verified micro-check: prompt, options, keyed answer, explanation
   avoidanceRule      String        @db.Text
   nrmSlopeA          Decimal       @db.Decimal(5, 3) // a_ik
   nrmInterceptC      Decimal       @db.Decimal(5, 3) // c_ik
@@ -185,6 +202,8 @@ model TestSession {
   user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   state                 SessionState @default(IN_PROGRESS)
   blueprintJson         Json         // question ids, delivered option shuffle and session parameters
+  pacingTier            PacingTier   @default(FIRST_EXPOSURE) // learner-facing timer multiplier; never rewrites item β
+  pacingSteadyDrills    Int          @default(0) // qualifying-drill count at session start
   startedAt             DateTime     @default(now())
   submittedAt           DateTime?
   thetaBefore           Decimal?     @db.Decimal(4, 3)
@@ -211,9 +230,17 @@ model UserItemAttempt {
   responseTimeMs        Int            @default(0)
   calibratedBudgetMs    Int
   extensionMs           Int            @default(0) // grace buffer / time deficit
-  confidence            Decimal?       @db.Decimal(3, 2) // [0.00, 1.00]; required before session submission
-  confidenceReportedAt  DateTime?       // submission transaction rejects a null value for any delivered item
+  selectionTrace        Json?          // immutable option selections: from/to, elapsed, remaining, paced budget
+  switchSignal          AnswerSwitchSignal? // server-derived observable timing label; never a claim about intent
+  switchConfirmedAt     DateTime?      // optional post-review learner confirmation
+  switchFeedback        String?        @db.Text // condition, recalculated, guessed, or learner-supplied clarification
+  confidence            Decimal?       @db.Decimal(3, 2) // [0.00, 1.00]; optional Diagnostic Practice self-report
+  confidenceReportedAt  DateTime?       // null is valid for uninterrupted NTA Simulation
   confidenceBand        ConfidenceBand?
+  learnerWorking        String?        @db.Text // optional equation/working line supplied during review
+  diagnosisConfidence   Decimal?       @db.Decimal(3, 2) // confidence that the selected trap identifies the first wrong pivot
+  diagnosisConfirmed    Boolean?       // learner says the inferred path was close to their reasoning
+  diagnosisFeedback     String?        @db.Text // confirmed, partly, guessed, or learner-provided correction
   isCorrect             Boolean?
   pressureTheta         Decimal?       @db.Decimal(5, 3)
   satoLabel             String?

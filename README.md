@@ -1,290 +1,346 @@
 # TargetJEE Engine
 
-**TargetJEE Engine** is a JEE Main / Advanced CBT simulator designed to expose the
-last-mile failure mode of high-achieving aspirants: selecting mathematically engineered
-distractors under time pressure. It couples raw-problem ingestion with auditable trap
-paths, a high-pressure NTA-style surface, and item-level psychometric diagnostics.
+> An evidence-led JEE Main / JEE Advanced CBT simulator that turns a submitted attempt into a practical repair plan—without turning the learner experience into a psychometrics dashboard.
 
-The included Next.js application is an interactive, seeded **Adaptive Drill 07**:
-answer items, calibrate confidence, use the timed grace buffer, and lock the attempt to
-see 3PL ability, log-time speed, Brier/ECE and misconception-path review.
+TargetJEE Engine combines an NTA-style timed drill, verified misconception-path analysis, optional metacognitive signals, source-problem extraction, and a high-engagement review studio. The current application ships with a seeded three-question reference drill so the complete learner flow works without credentials or a database.
 
-## Run the interactive reference app
+## What learners can do
 
-```bash
-npm install
-npm run dev
-# open http://localhost:3000
-```
+- Take a calm, authentic **NTA Simulation** with a locked option order, timer, question palette, mark-for-review state, clear response, and final response check.
+- Switch to **Diagnostic Practice** only when they want optional `Guess`, `Think so`, or `Certain` self-reports. Confidence is never required in NTA Simulation.
+- Start at a longer **First exposure** question window and progress automatically through Guided practice, Exam pace, and Pressure practice after steady, timely completed drills.
+- Submit a drill and get a focused review rather than raw ability or calibration jargon.
+- Start with the highest-value repair: the selected wrong option opens its verified trap path, first wrong pivot, plausibility rationale, corrective rule, clean solution, and a short redemption check.
+- Receive an evidence-based answer-change signal after submission—evidence-led, reconsidered, or late response-window—plus an optional learner confirmation. The system never claims to read intent from clicks alone.
+- Review at three levels: **Quick scan**, **Coach review**, or **Deep analysis**.
+- Open auto-generated **session flashcards** built from selected misconception routes and save a card to the revision queue interaction.
+- Use the same review information architecture in paired **dark and light themes**, with an intentional mobile layout.
+- Upload a scan/photo/PDF to the extraction reference flow and inspect structured tagging, source evidence, KaTeX-safe mathematics, and coordinate anchors.
+- Optionally configure a personal Gemini BYOK key in the browser. The default model is `gemini-flash-latest`.
 
-Build verification:
+## Feature principles
 
-```bash
-npm run build
-```
-
-The UI is deliberately front-end seeded so it works without credentials. The FastAPI
-service and Prisma model below are the production integration boundary.
-
-## Frontend routes
-
-- **`/`** — four-slide procedural WebGL landing experience: keyboard, wheel, touch, edge
-  controls and pagination drive the carousel; the Quantum Scholar, ribbons, cables,
-  floating lettering and liquid core are generated entirely from Three.js geometry/curves
-  and shaders (no model assets).
-- **`/dashboard`** — the screenshot-led TargetJEE operations dashboard. It starts in the
-  light admin-matrix theme and its header toggle opens the compact dark operations theme.
-- **`/simulator`** — the original working NTA-style adaptive CBT, kept intact behind the
-  landing and dashboard calls to action.
-- **`/reference`** — the implementation, equations, contracts and calibration atlas.
-
-The slide-four initializer opens a dedicated Gemini BYOK popup. It persists the learner’s
-student context and selected stream separately, while the learner-controlled key remains only
-in that browser’s `localStorage` and is sent only with a requested extraction. The same popup
-is available from the simulator’s **AI key** control and includes a local-key removal action.
-
-## Complete one-page project reference
-
-When the web app is running, open **`/reference`** for the full formula atlas, seeded-drill
-equations, source-to-diagnostic flow, CBT rules, persistence map, accuracy safeguards, and
-all verification commands in one page.
-
-## Public deployment
-
-The Vercel + Railway production handoff is in **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
-It includes Docker/Railway setup, Vercel environment variables, direct-upload/CORS guidance,
-public-demo safeguards, database provisioning, and the pre-launch checklist.
+| Principle | Implementation |
+|---|---|
+| Authentic testing first | NTA Simulation avoids a mandatory confidence gate and keeps the testing surface calm. |
+| Every wrong answer is meaningful | Each distractor represents a distinct misconception path, never an arbitrary number. |
+| Evidence before labels | Review explains the option chosen, the first incorrect pivot, why it looked plausible, when that route would be valid, and the rule that repairs it. |
+| Technical models stay in the measurement layer | Learners see stable, practical language such as estimate stability and next move—not routine raw theta or sigma values. |
+| One dashboard architecture | Light and dark are themes of one data-display system, not separate dashboards. |
+| Responsive by design | Desktop navigation and mobile navigation are intentionally different arrangements of the same workflow. |
 
 ---
 
-## Recommended production architecture
+## Quick start
 
-The complete deployment blueprint, component boundaries, FastAPI Vision-LLM contract,
-Next.js BFF routes, Prisma responsibilities, security controls, scoring flow, and scaling
-strategy are in **[`docs/SYSTEM_ARCHITECTURE.md`](docs/SYSTEM_ARCHITECTURE.md)**.
+### Requirements
+
+- Node.js **22.12+**
+- npm
+- Python 3.12+ only when running the FastAPI backend locally
+
+### Run the Next.js app
+
+```bash
+npm ci
+npm run dev
+```
+
+Open the simulator:
+
+```text
+http://localhost:3000/simulator
+```
+
+Useful routes:
+
+| Route | Purpose |
+|---|---|
+| `/` | Four-slide procedural WebGL/Three.js landing experience. |
+| `/simulator` | NTA-style CBT drill, submission, review studio, flashcards, and extraction entry point. |
+| `/dashboard` | Unified learner dashboard with a light/dark theme switch. |
+| `/reference` | Formula atlas, contract notes, and implementation reference. |
+
+### Open the Arena live preview
+
+When this project is running in Arena, use the **Live Preview** card named **TargetJEE Engine**, then choose **Open Preview**. Append `/simulator`, `/dashboard`, or `/reference` in the preview address bar to open a specific experience.
+
+---
+
+## Review Studio
+
+The post-session experience is implemented in `components/diagnostic-review.tsx` and is driven by the submitted session state—not static mock data.
+
+### Review flow
+
+1. **Session verdict** — raw score, repairable mark opportunity, observed response outcome, estimate stability, and next move.
+2. **Workflow sidebar** — a simple three-step explanation of what is recorded, the timer-pressure formula used, how it helps flag rushed decisions, and the learner-facing output. It avoids implementation architecture details.
+3. **Review depth** — learner chooses a quick scan, guided coaching, or full route analysis.
+4. **Priority repair** — the top incorrect or unattempted route receives a clear primary action.
+5. **Route replay** — selected answer, time on item, first wrong pivot, why the choice was plausible, counterfactual validity, and correct solution.
+6. **Recovery** — a short targeted check verifies whether the learner now understands the decisive cue.
+7. **Flashcards** — generated from structured misconception evidence; clean sessions instead preserve a correct decision cue.
+8. **Next-session plan** — one concise action rather than generic performance language.
+
+The project intentionally handles all relevant review states:
+
+- selected incorrect answer;
+- unattempted question;
+- selected correct answer / clean session;
+- short, low-information drill;
+- dark/light theme toggle;
+- desktop and mobile layouts.
+
+### Concept image versus actual page
+
+`images/targetjee-session-review-ui.png` is a visual concept, not a screenshot or a pixel-for-pixel specification. It contains illustrative data and concept-only navigation.
+
+`images/targetjee-actual-session-review-user-friendly.png` is an actual browser capture of the implemented submitted-session page. The real implementation preserves the visual direction while adding functional review depth, evidence-led route replay, redemption checks, flashcards, theme switching, and responsive behavior.
+
+---
+
+## Measurement and diagnostic model
+
+### Ability model
+
+The reference implementation uses a bounded 3PL model:
+
+$$
+P_i(\theta)=c_i+\frac{1-c_i}{1+\exp[-1.702a_i(\theta-b_i)]}
+$$
+
+The client reference implementation estimates a bounded ability value for the seeded drill. In production, ability estimates should be stored with standard errors and treated as provisional when item information is low.
+
+### Timing model and required pressure rule
+
+The timing model uses a Van der Linden-style log-time fit:
+
+$$
+\ln(T_i)\sim\mathcal{N}\left(\beta_i-\tau,\frac{1}{\alpha_i^2}\right)
+$$
+
+The required timer-pressure degradation remains exactly:
+
+$$
+\theta^*(t)=\theta-\lambda\max\left(0,\frac{\beta_i}{t}-1\right)
+$$
+
+In the implementation, the calibrated item time is derived as `exp(question.psychometric.beta)` before applying the rule. A learner who uses a time extension keeps their attempt; every extension is logged as a time-deficit event rather than silently improving a pressure-adjusted result.
+
+### Distractor contract
+
+Every production question must include:
+
+- subject, chapter, topic, and JEE Main/JEE Advanced target-level tagging;
+- one keyed answer;
+- three distinct, realistic misconception distractors;
+- executable/evaluated trap-path values that are not equivalent to the keyed answer;
+- first wrong pivot, plausibility rationale, valid-when counterfactual, avoidance rule, and NRM parameters;
+- a verified question-level recovery check.
+
+The complete generation contract is in [`docs/LLM_GENERATION_SYSTEM_PROMPT.md`](docs/LLM_GENERATION_SYSTEM_PROMPT.md).
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  U[Student browser] --> N[Next.js App Router + BFF]
-  N --> P[(PostgreSQL / Prisma)]
-  N --> F[FastAPI extraction + validation]
-  F --> Q[Queue / worker]
-  Q --> V[Vision LLM]
-  Q --> S[Symbolic verifier]
-  N --> O[(Private object storage)]
+  L[Learner browser] --> N[Next.js App Router]
+  N --> B[Same-origin BFF routes]
+  B --> F[FastAPI on Railway]
+  F --> V[Vision / LLM adapter]
+  F --> S[Symbolic validation]
+  N --> P[(PostgreSQL via Prisma)]
 ```
 
-### Stack decisions
+### Stack
 
-| Layer | Recommended technology | Reason |
-|---|---|---|
-| Web client | **Next.js 15 App Router**, TypeScript, React 19 | Server/client boundaries, route handlers, streaming and a strong deployment model. |
-| Design system | **Tailwind CSS** + CSS variables + Radix primitives | Tokenized, accessible components; this reference uses portable CSS so it previews without a Tailwind build step. |
-| Formula rendering | **KaTeX** | Fast deterministic rendering; sanitize and render server-side for review snapshots. |
-| API / AI workflow | **Python FastAPI**, Pydantic v2, background worker (Celery/Arq or Temporal) | Excellent typed contracts and symbolic/OCR ecosystem. Do not run Vision-LLM work in a request thread. |
-| Verification | SymPy + unit-aware checker + diagram/OCR confidence policy | Re-evaluate correct answer and each trap output; reject equivalent/undefined options. |
-| Persistence | **PostgreSQL 16**, **Prisma** for Next.js transactional reads/writes | Relational auditability for items, option order, events and calibration. |
-| Assets | Private S3/R2/GCS bucket + short-lived signed URLs | Source scans are sensitive educational content; store original plus SHA-256. |
-| Queues | SQS/Redis + idempotent worker records | Vision/OCR is latency-variable; source hash makes retries safe. |
-| Observability | OpenTelemetry, structured logs, Sentry, prompt/model/version audit | Required for calibration drift and generated-content incident response. |
+| Layer | Technology |
+|---|---|
+| Web | Next.js App Router, React, TypeScript |
+| Visual interaction | Three.js, React Three Fiber, Drei, Framer Motion |
+| Mathematics | KaTeX |
+| API | FastAPI, Pydantic v2, SymPy |
+| Data model | PostgreSQL-ready Prisma schema |
+| Deployment | Vercel for Next.js, Railway for FastAPI |
 
-### Service boundaries
-
-1. **Ingest:** browser asks the BFF for a short-lived upload URL; object storage scan and
-   checksum happen before a `SourceAsset` is accepted. FastAPI queues OCR/Vision work.
-2. **Item forge:** OCR spans and diagram anchors are provided to the LLM via the strict
-   prompt in `docs/LLM_GENERATION_SYSTEM_PROMPT.md`. It may only return the contract.
-3. **Verification:** Pydantic rejects structural errors; a symbolic verifier recomputes
-   the correct answer and each `trap_path`. An item is rejected if any option is duplicate,
-   equivalent, unsupported by source evidence, or inconsistent with its displayed value.
-4. **Human review:** `DRAFT → PENDING_REVIEW → APPROVED` is a mandatory editorial state
-   transition for generated content. Item parameters can be seeded by experts and then
-   recalibrated from anonymized response data.
-5. **Delivery:** the server shuffles once at session creation and locks that permutation
-   in `UserItemAttempt.optionOrderJson`; it is never reshuffled while an attempt is live.
-   The browser sends monotonic timing events / checkpointed elapsed milliseconds—not a
-   trusted final duration. Each +1/+2 minute grace decision creates an immutable
-   `TimeDeficitEvent` as well as updating the aggregate `extensionMs`.
-6. **Scoring:** on submission, a transaction scores selections, runs bounded 3PL MLE,
-   estimates `tau = mean(beta_i - ln(T_i))`, calculates Brier/ECE, records a snapshot,
-   and writes immutable calibration contributions.
-
-> **Security:** server-owned model keys must never enter the browser. The optional Google
-> Gemini BYOK flow deliberately uses a learner-controlled local browser key and forwards it
-> only with the individual extraction request; it is not persisted by TargetJEE. Tell users
-> to use it only on personal devices and provide a clear local-key removal control. Retain
-> request authentication, rate limits, content-type/size verification, malware scanning,
-> encrypted source storage, audit-log retention, and strict CSP. Do not treat client timer
-> values as authoritative in high-stakes rankings.
-
----
-
-## Psychometric implementation notes
-
-### 3PL ability / Birnbaum
-
-For item $i$, the implementation uses the Birnbaum three-parameter logistic model:
-
-$$
-P_i(\theta) = c_i + \frac{1-c_i}{1+\exp\left[-1.702\,a_i(\theta-b_i)\right]}
-$$
-
-`lib/psychometrics.ts` clamps the exponent and obtains a bounded
-$\theta \in [-3,3]$ MLE using finite-difference Newton–Raphson iterations over completed
-item likelihood. In production, store standard errors and use test information or a
-regularized MAP estimate for short drills; label low-information estimates as provisional.
-
-### NRM distractor diagnosis
-
-Each wrong `QuestionOption` owns exactly one `DistractorArchetype` and an NRM slope /
-intercept pair. At review, the selected option leads directly to its error description and
-avoidance rule. The option-level selection tendency is:
-
-$$
-P_{ik}(\theta) =
-\frac{\exp\left(a_{ik}\theta+c_{ik}\right)}
-{\sum_h \exp\left(a_{ih}\theta+c_{ih}\right)}
-$$
-
-These are **diagnostic parameters**, not a substitute for empirical calibration.
-
-### SATO / timing
-
-The response-time model is:
-
-$$
-\ln(T_i) \sim \mathcal{N}\left(\beta_i-\tau,\frac{1}{\alpha_i^2}\right)
-$$
-
-The reference implementation fits the precision-weighted estimate:
-
-$$
-\hat{\tau} =
-\frac{\sum_i \alpha_i^2\left(\beta_i-\ln(T_i)\right)}
-{\sum_i \alpha_i^2},
-\qquad
-\mathrm{SE}(\hat{\tau}) = \frac{1}{\sqrt{\sum_i \alpha_i^2}}
-$$
-
-It then applies the requested hasty-response adjustment, where
-$\beta_{\mathrm{seconds}} = \exp(\beta_i)$:
-
-$$
-\theta^*(t)=\theta-\lambda\max\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
-$$
-
-A buffer does not void an attempt. Each extension is recorded as a `TimeDeficitEvent` and is
-included in the conservative extension term below, where $g$ is accumulated grace seconds
-and $\delta=0.22$:
-
-$$
-\theta^*(t,g)=
-\theta-\lambda\max\left(0,\frac{\beta_{\mathrm{seconds}}}{t}-1\right)
--\delta\ln\left(1+\frac{g}{\beta_{\mathrm{seconds}}}\right)
-$$
-
-This prevents grace time from silently improving a pressure-adjusted estimate while
-preserving the learner’s response for diagnosis.
-
-### Metacognition
-
-Every delivered item requires an explicit learner confidence report
-$f_n \in [0,1]$ before final submission; skipped items may be reported as $0$. The submission
-gate refuses to lock a drill with missing confidence reports. The submission worker calculates
-the Brier score $\mathrm{mean}[(\mathrm{confidence}-\mathrm{outcome})^2]$ and five-bin
-Expected Calibration Error. Never infer psychological diagnosis from one drill; present
-calibration as a behavior signal over a sufficient response window.
-
----
-
-## Repository map
+### Repository map
 
 ```text
-app/                         Next.js App Router and styles
-components/target-jee-engine.tsx  NTA-style CBT, timer/buffer, review UI
-lib/questions.ts             Seeded items and trap mappings
-lib/psychometrics.ts         3PL, Newton MLE, NRM, SATO, Brier/ECE utilities
-backend/app/main.py          Typed FastAPI ingress, extraction, and item-contract validator
-backend/app/extraction.py    Vision-to-raw-text/KaTeX/coordinate-evidence adapter
-backend/app/psychometrics.py Server-authoritative Van der Linden log-time fit
-prisma/schema.prisma         PostgreSQL Prisma schema
-docs/SYSTEM_ARCHITECTURE.md  Deployment and stack architecture blueprint
-docs/LLM_GENERATION_SYSTEM_PROMPT.md  Locked prompt + output contract
+app/                                  Next.js routes, BFF endpoints, global styling
+components/target-jee-engine.tsx      CBT simulator, timer, question navigation, submission
+components/diagnostic-review.tsx      Review Studio, route replay, recovery, flashcards
+components/dashboard/                 Unified learner dashboard
+components/canvas/                    Procedural Three.js landing experience
+lib/questions.ts                      Seeded tagged questions and misconception trap paths
+lib/psychometrics.ts                  3PL, timing, NRM, Brier, and ECE utilities
+backend/app/main.py                   FastAPI extraction, validation, health routes
+backend/app/extraction.py             Vision-to-structured-evidence adapter
+backend/app/symbolic_validation.py    Symbolic and contract validation
+prisma/schema.prisma                  PostgreSQL persistence model
+docs/DEPLOYMENT.md                    Vercel, Railway, CORS, and environment guide
+docs/SYSTEM_ARCHITECTURE.md           Production architecture and boundaries
 ```
 
-## Database and migration
+---
 
-The complete normalized Prisma model is in `prisma/schema.prisma` and covers:
-
-- source images/PDFs and OCR evidence;
-- questions, versioned generation contracts and 3PL time parameters;
-- four delivery options and one-to-one distractor archetypes / NRM coefficients;
-- locked session option permutations, answer events, response time, aggregate grace debt,
-  and one immutable event for every individual time-buffer decision;
-- user ability snapshots and Brier/ECE calibration contributions;
-- model/prompt/reviewer audit events.
-
-For a live database, add `@prisma/client`, initialize a Postgres database, set
-`DATABASE_URL`, then run:
-
-```bash
-npx prisma migrate dev --name initial_targetjee
-npx prisma generate
-```
-
-## FastAPI contract boundary
+## Backend: run locally
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- `POST /v1/sources` accepts only PNG/JPEG/PDF (reference limit: 20 MB) and emits a queued
-  source receipt. Replace its in-memory reference path with scanned object storage and a
-  job queue.
-- `POST /v1/extractions` sends a scan/photo/PDF to the server-side Vision adapter and
-  returns raw text, KaTeX-safe LaTeX, discrete formula regions, diagram coordinates, OCR
-  ambiguity flags and confidence. Configure `VISION_LLM_BASE_URL`, `VISION_LLM_API_KEY`,
-  and `VISION_LLM_MODEL`; the Next.js same-origin broker at `/api/extractions` forwards
-  the browser upload privately via `TARGETJEE_API_BASE_URL`, so no model credential is
-  exposed to the browser.
-- `POST /v1/items/validate` validates a completed LLM object. The model rejects unknown
-  keys, missing trap paths, duplicate canonical values, invalid psychometric ranges, and
-  beta/time inconsistency.
-- `POST /v1/analytics/van-der-linden` fits the precision-weighted candidate speed `τ`,
-  standard error, and normal log-likelihood for `ln(T_i) ~ N(β_i−τ, 1/α_i²)`.
-- `GET /health` is readiness-friendly.
-
-## Acceptance criteria before an item reaches a learner
-
-- [ ] Source evidence is sufficient for a unique exact answer.
-- [ ] Correct derivation passes a symbolic/numerical verifier.
-- [ ] Three wrong options are all distinct, solve to their displayed values, and derive
-      from their declared error mechanism.
-- [ ] KaTeX renders and scientific notation/units are unambiguous.
-- [ ] Psychometric values are in range and receive an expert calibration label.
-- [ ] Human review changes state to `APPROVED`.
-- [ ] Delivered option ordering, timer events, confidence and extension time are immutable
-      after submission.
-
-## Quality gates and verification
+Verify the service:
 
 ```bash
-# Web: ESLint, TypeScript, Vitest and production build
-npm run check
-
-# Prisma schema
-DATABASE_URL='postgresql://targetjee:localpassword@localhost:5432/targetjee' npm run prisma:validate
-
-# Backend: isolated test dependencies and API/symbolic checks
-python -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-PYTHONPATH=backend pytest -q backend/tests
+curl http://127.0.0.1:8000/health
 ```
 
-The project includes a GitHub Actions workflow at `.github/workflows/quality.yml` that
-runs these web, Prisma and FastAPI gates on pushes and pull requests. The generated-item
-validator also applies a bounded SymPy equivalence guard to reject visually different but
-mathematically identical answer options before they reach review.
+Important backend endpoints:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Deployment and readiness check. |
+| `POST /v1/sources` | Accept a supported source asset and emit an intake receipt. |
+| `POST /v1/extractions` | Return structured text, math blocks, tags, classification, and coordinate evidence. |
+| `POST /v1/items/validate` | Validate generated item and distractor contracts. |
+| `POST /v1/analytics/van-der-linden` | Fit the timing model. |
+
+---
+
+## Environment variables
+
+Copy `.env.example` for local configuration. Never commit a real `.env` file.
+
+### Next.js / Vercel
+
+| Variable | Required when | Value |
+|---|---|---|
+| `TARGETJEE_API_BASE_URL` | Using Vercel's same-origin extraction proxy | Railway base URL, for example `https://your-api.up.railway.app` |
+| `NEXT_PUBLIC_EXTRACTION_API_URL` | Direct browser uploads to Railway are desired | `https://your-api.up.railway.app/v1/extractions` |
+| `DATABASE_URL` | Enabling Prisma-backed persistent writes | PostgreSQL connection string |
+
+### Railway / FastAPI
+
+| Variable | Purpose |
+|---|---|
+| `CORS_ALLOW_ORIGINS` | Comma-separated allowed Vercel/custom-domain origins. |
+| `CORS_ALLOW_ORIGIN_REGEX` | Optional narrow matcher for Vercel preview domains. |
+| `EXTRACTION_RATE_LIMIT_PER_MINUTE` | Per-client extraction rate limit; default reference value is `8`. |
+| `TRUST_PROXY_HEADERS` | Set `true` when Railway proxy headers should be honoured. |
+| `VISION_LLM_BASE_URL` | Optional server-owned provider endpoint. |
+| `VISION_LLM_API_KEY` | Optional server-owned provider key. Keep server-only. |
+| `VISION_LLM_MODEL` | Optional server-owned vision model identifier. |
+
+### Gemini BYOK safety
+
+- The browser key storage key is `targetjee.byok.gemini.v1`.
+- The default Gemini model is `gemini-flash-latest`.
+- The learner key is sent only in request-scoped allow-listed headers.
+- Never expose a learner key through `NEXT_PUBLIC_*` variables, Git, analytics, URLs, database records, or server logs.
+- A BYOK-only Railway deployment may leave the `VISION_LLM_*` server-owned-provider values blank.
+
+---
+
+## Deployment
+
+The complete handoff is in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+### Railway
+
+1. Create a Railway project from the GitHub repository.
+2. Set the service root directory to `backend`.
+3. Railway uses `backend/Dockerfile` and `backend/railway.toml`.
+4. Deploy and copy the public Railway base URL.
+5. Set `CORS_ALLOW_ORIGINS` to the exact Vercel production/custom-domain origins.
+6. Test `https://your-api.up.railway.app/health`.
+
+### Vercel
+
+1. Import or connect the repository.
+2. Keep the project root at the repository root.
+3. Select Next.js or allow automatic detection.
+4. Add `TARGETJEE_API_BASE_URL` as the Railway base URL.
+5. Add `NEXT_PUBLIC_EXTRACTION_API_URL` only when direct large-file uploads are required and CORS is configured.
+6. Set the production branch to `main` in **Project Settings → Git**.
+7. Enable Git deployment creation only when you are ready for approved `main` pushes to publish automatically.
+
+The current Vercel project has a GitHub connection to `soham-laha/TargetJEE` and a production branch of `main`. Review deployment settings before enabling automatic deployment creation.
+
+---
+
+## Quality checks
+
+Run the complete frontend gate:
+
+```bash
+npm run check
+```
+
+This runs linting, TypeScript checking, Vitest, and a production Next.js build.
+
+Run backend tests:
+
+```bash
+cd backend
+.venv/bin/python -m pytest tests -q
+```
+
+Validate Prisma:
+
+```bash
+DATABASE_URL='postgresql://user:pass@localhost:5432/targetjee' npm run prisma:validate
+```
+
+Check production dependencies:
+
+```bash
+npm audit --omit=dev --audit-level=high
+```
+
+The latest local verification passed:
+
+- TypeScript and ESLint with zero warnings;
+- 7 frontend psychometric tests;
+- production Next.js build;
+- 14 FastAPI tests;
+- Prisma schema validation;
+- production and full dependency audits with zero reported vulnerabilities;
+- browser acceptance checks for incorrect, unattempted, fully correct, flashcard, recovery, theme, desktop, and mobile flows.
+
+---
+
+## Current reference scope
+
+The included drill is intentionally seeded and client-side so anyone can explore the product without credentials. The Prisma schema and FastAPI contracts provide the production boundary, but a production account system, durable learner-session writes, object storage, asynchronous job queue, Redis-backed rate limits, reviewer workflow, and empirically calibrated item bank must be connected before collecting real learner data or making high-stakes claims.
+
+## Accuracy roadmap
+
+The next high-value accuracy improvements are:
+
+1. Use provenance-backed official JEE item sources and answer keys.
+2. Require subject-matter-expert approval before generated content reaches learners.
+3. Run symbolic, numerical-substitution, dimensional, and domain checks for every answer and distractor.
+4. Add low-confidence OCR confirmation for ambiguous scans, diagrams, and handwritten notation.
+5. Calibrate item, distractor, and timing parameters from adequately sized anonymised response data.
+6. Maintain a regression dataset for extraction, answers, explanations, trap paths, and recovery checks.
+7. Prefer explicit uncertainty and review escalation over an unverified answer or explanation.
+
+---
+
+## Security and privacy notes
+
+- Do not commit secrets, `.env` files, learner Gemini keys, private source scans, or database URLs.
+- Keep CORS origin lists narrow; do not use `*` for the browser upload/BYOK flow.
+- Treat client timer values as diagnostic signals, not authoritative high-stakes ranking evidence.
+- Preserve source hashes, item/version identifiers, and reviewer/model audit trails in a production deployment.
+- Use private object storage and signed URLs for real uploaded source material.
+
+## License and use
+
+This repository is a technical reference implementation. Review generated educational content, psychometric claims, source licensing, privacy obligations, and exam-policy requirements before using it with real learners.
