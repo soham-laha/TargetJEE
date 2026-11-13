@@ -183,8 +183,9 @@ sequenceDiagram
 \theta^*(t,g) = \theta - \lambda\max(0,\beta_i/t - 1) - \delta\ln(1 + g/\beta_i)
 \]
 
-6. Every delivered item must have an explicit subjective-confidence report \(f_n \in [0,1]\) before the BFF can move the session to `SUBMITTED`; this includes an explicit `0` report for a skipped item. The submission transaction rejects a null `confidence` or `confidenceReportedAt`.
-7. Final scoring, answer keys, confidence calibration, and IRT updates run only after the session is locked.
+6. **NTA Simulation** never blocks a learner for a confidence report. **Diagnostic Practice** may collect an optional three-state certainty signal (`Guess`, `Think so`, `Certain`) and stores it as \(f_n \in [0,1]\) only when the learner actively supplies it. Calibration metrics use only explicit reports; a null confidence is valid and means “no self-report”.
+7. Final scoring, answer keys, optional calibration metrics, and IRT updates run only after the session is locked.
+8. An item-level diagnosis is evidence-led: it stores the selected option, evaluated trap path, earliest wrong pivot, narrow counterfactual, diagnosis confidence, optional learner working, learner correction, and a verified recovery check. If no route is strongly supported, the review asks one discriminating question rather than claiming certainty.
 
 ---
 
@@ -196,9 +197,9 @@ sequenceDiagram
 | `Question` | Versioned learner-facing stem, methods A/B, avoidance rule, approval lifecycle and immutable generation contract. |
 | `PsychometricParameter` | 3PL `a/b/c`, log-time `beta`, time precision `alpha`, calibration metadata and sample count. |
 | `QuestionOption` | Canonical answer value and original option identity; display position is session-specific. |
-| `DistractorArchetype` | Symbolically evaluable misconception path, diagnosis, avoidance rule and NRM `a_ik/c_ik`. |
+| `DistractorArchetype` | Symbolically evaluable misconception path, first wrong pivot, why-plausible rationale, counterfactual validity condition, verified recovery check, avoidance rule and NRM `a_ik/c_ik`. |
 | `TestSession` | Locked drill blueprint and aggregate theta, tau, Brier/ECE results. |
-| `UserItemAttempt` | Selected canonical option, immutable delivered option order, confidence, response duration and pressure result. |
+| `UserItemAttempt` | Selected canonical option, immutable delivered option order, optional certainty, response duration, learner working, diagnosis confirmation and pressure result. |
 | `TimeDeficitEvent` | One immutable row per `+1/+2` grace decision. |
 | `CalibrationLog` / `AbilitySnapshot` | Longitudinal confidence and ability estimates. |
 | `GenerationAuditEvent` | Model, prompt hash, validation decision and reviewer trace. |
@@ -215,10 +216,10 @@ sequenceDiagram
 | `POST /v1/items/validate` | FastAPI | Rejects malformed generated items before persistence. |
 | `POST /v1/analytics/van-der-linden` | FastAPI | Server-authoritative fit of \(\tau\), standard error and log-likelihood for the hierarchical log-time model. |
 | `POST /api/sessions` | Next.js BFF | Creates session blueprint and server-locks randomized option order. |
-| `PATCH /api/attempts/:id` | Next.js BFF | Checkpoints selection, confidence and elapsed duration. |
+| `PATCH /api/attempts/:id` | Next.js BFF | Checkpoints selection, optional certainty and elapsed duration. |
 | `POST /api/attempts/:id/time-deficits` | Next.js BFF | Transactionally creates a `TimeDeficitEvent`; only accepts allowed buffer amounts. |
 | `POST /api/sessions/:id/submit` | Next.js BFF | Atomically locks attempts and starts scoring. |
-| `GET /api/sessions/:id/diagnostic` | Next.js BFF | Returns item-level trap, SATO and calibration review after scoring. |
+| `GET /api/sessions/:id/diagnostic` | Next.js BFF | Returns a learner-facing, evidence-led item review: selected trap, first wrong pivot, counterfactual, recovery check, timing context and optional calibration data. |
 
 Implement the Next.js delivery routes with Zod/Valibot input contracts plus Prisma transactions; keep FastAPI contracts Pydantic-owned. This prevents schema drift without forcing Python to own learner-session writes.
 
@@ -247,7 +248,7 @@ Implement the Next.js delivery routes with Zod/Valibot input contracts plus Pris
 
 - Initial `a/b/c`, NRM and time parameters are expert priors, not claims of empirical calibration.
 - Re-estimate parameters only after minimum sample thresholds and drift checks.
-- Label theta and ECE as provisional for short tests; report standard error/test information when enough responses are available.
+- Keep theta, ECE, standard error and pressure calculations available to advanced analytics and scoring, but present learners with plain-language estimate stability (`Early`, `Settling`, `Reliable`) rather than raw notation in routine flows.
 - Do not infer clinical or fixed cognitive traits from individual mistakes.
 
 ---

@@ -7,7 +7,7 @@ import { MorphingBlob } from "./MorphingBlob";
 import { QuantumScholar } from "./QuantumScholar";
 import { SceneEnvironment } from "./SceneEnvironment";
 
-type SceneProps = { activeSlide: number; cursor: [number, number] };
+type SceneProps = { activeSlide: number; cursor: [number, number]; compact?: boolean };
 
 function CameraRig({ activeSlide }: { activeSlide: number }) {
   const { camera } = useThree();
@@ -25,8 +25,10 @@ function CameraRig({ activeSlide }: { activeSlide: number }) {
 }
 
 /** Primary R3F stage. Every object is procedural and runs without model URLs or texture downloads. */
-export default function Scene({ activeSlide, cursor }: SceneProps) {
-  return <Canvas className="landing-webgl-canvas" dpr={[1, 1.75]} camera={{ position: [0, .18, 8.5], fov: 42 }} gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}>
+export default function Scene({ activeSlide, cursor, compact = false }: SceneProps) {
+  // Small/touch screens use the same procedural scene at a deliberately lower pixel ratio.
+  // This keeps the landing recognisable without turning a phone into a GPU benchmark.
+  return <Canvas className="landing-webgl-canvas" dpr={compact ? [1, 1.2] : [1, 1.75]} camera={{ position: [0, .18, 8.5], fov: 42 }} gl={{ antialias: !compact, alpha: false, powerPreference: "high-performance" }}>
     <Suspense fallback={null}>
       <CameraRig activeSlide={activeSlide} />
       <ambientLight intensity={activeSlide === 1 ? 1.8 : .44} color={activeSlide === 1 ? "#ffffff" : "#b8a6ff"} />

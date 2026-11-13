@@ -32,24 +32,30 @@ NON-NEGOTIABLE RULES
    vector component omission; false symmetry; and exponent reversal. Never state a
    misconception that does not actually yield the option.
 6. The `diagnosis` says what the selected option reveals, not what the student is.
+   Every trap must also include: `first_wrong_pivot` (the earliest invalid assumption or
+   transformation), `why_plausible` (why this exact route can feel reasonable), and
+   `valid_when` (the narrow counterfactual in which that approach would be valid).
    The `avoidance_rule` is one compact imperative sentence for a physical mistake log.
-7. Calibrate IRT 3PL coefficients: a_i is [0.50,2.50], b_i is [-3.00,3.00], c_i is
+7. Produce one question-level `recovery_check`: a short, independently answerable
+   3–4 option micro-question that checks the decisive condition behind the item. Its
+   answer and explanation must be verified against the correct derivation.
+8. Calibrate IRT 3PL coefficients: a_i is [0.50,2.50], b_i is [-3.00,3.00], c_i is
    [0.00,0.25]. Higher a_i only when the item separates mastery; lower c_i when traps
    make blind guessing less viable. D=1.702 is used downstream.
-8. Calibrate time: beta_i is ln(expected response seconds), alpha_i is the log-time
+9. Calibrate time: beta_i is ln(expected response seconds), alpha_i is the log-time
    precision. recommended_seconds must be within 55% to 155% of exp(beta_i). Never use
    a value below 30 or above 1200 seconds.
-9. For each wrong option, provide Bock NRM parameters nrm.a and nrm.c. Negative a
+10. For each wrong option, provide Bock NRM parameters nrm.a and nrm.c. Negative a
    generally indicates an error selected more often by lower ability; positive a is
    reserved for sophisticated traps that lure partially skilled students. These are
    diagnostics, not random decoration.
-10. Write all mathematical notation in KaTeX-compatible LaTex. Escaped JSON strings
+11. Write all mathematical notation in KaTeX-compatible LaTex. Escaped JSON strings
     must use double backslashes. Do not emit raw Unicode mathematical symbols when
     LaTex is appropriate. Do not use \$ delimiters inside latex fields.
-11. Write every symbolic `canonical_value` in a parser-safe normalized form: explicit
+12. Write every symbolic `canonical_value` in a parser-safe normalized form: explicit
     multiplication (`3/2*m*omega^2*r^2`, never `3mω²r²`), `^` for powers, and no TeX
     commands or dollar delimiters. The display `latex` remains learner-facing.
-12. If OCR evidence is ambiguous, contradictory, missing a diagram label, or cannot
+13. If OCR evidence is ambiguous, contradictory, missing a diagram label, or cannot
     support a unique exact answer, do not guess. Return a JSON object of this schema
     with reviewer_flags containing AMBIGUOUS_SOURCE and explain the blocked evidence
     concisely in source_problem_normalized. Do not create ungrounded options.
@@ -67,6 +73,12 @@ REQUIRED JSON SHAPE
   "correct_derivation": ["ordered, rigorous steps"],
   "competitive_shortcut": ["ordered contest shortcut steps"],
   "avoidance_rule": "imperative single sentence",
+  "recovery_check": {
+    "prompt": "short condition-check question",
+    "choices": ["choice A", "choice B", "choice C"],
+    "answer_index": 0,
+    "explanation": "why the keyed choice proves the decisive rule"
+  },
   "options": [
     {
       "key": "A | B | C | D",
@@ -88,6 +100,9 @@ REQUIRED JSON SHAPE
         "evaluated_latex": "the evaluated displayed result",
         "evaluated_canonical_value": "the exact evaluated canonical result",
         "diagnosis": "specific cognitive inference",
+        "first_wrong_pivot": "earliest invalid assumption or transformation",
+        "why_plausible": "why this exact option can feel reasonable",
+        "valid_when": "the narrow condition under which this route would be valid",
         "avoidance_rule": "imperative single sentence",
         "nrm": { "a": -0.20, "c": 0.10 }
       }

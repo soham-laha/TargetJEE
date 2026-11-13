@@ -1,4 +1,4 @@
-import type { Attempt, Question } from "./types";
+import type { Attempt, PacingProfile, PacingTier, Question, SwitchSignalKind } from "./types";
 
 const D = 1.702;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -91,6 +91,116 @@ export function estimateSpeed(questions: Question[], attempts: Attempt[]): numbe
 /** Timer budget is derived directly from β_i because β_i is log expected seconds. */
 export function calibratedSeconds(question: Question): number {
   return Math.max(30, Math.round(Math.exp(question.psychometric.beta)));
+}
+
+/**
+ * Practice pacing widens the learner-facing timer window without changing β_i itself.
+ * The required pressure model therefore continues to use the calibrated base item time.
+ */
+export const PACING_TIERS: Record<PacingTier, { label: string; multiplier: number; description: string }> = {
+  "first-exposure": { label: "First exposure", multiplier: 1.6, description: "A longer first-pass window for learning a new route." },
+  guided: { label: "Guided practice", multiplier: 1.3, description: "Room to apply a route with less prompting." },
+  exam: { label: "Exam pace", multiplier: 1, description: "The calibrated item window." },
+  pressure: { label: "Pressure practice", multiplier: 0.8, description: "A short challenge window once the route is stable." }
+};
+
+export const DEFAULT_PACING_PROFILE: PacingProfile = { tier: "first-exposure", steadyDrills: 0 };
+
+export function pacedSeconds(question: Question, tier: PacingTier): number {
+  return Math.max(30, Math.round(calibratedSeconds(question) * PACING_TIERS[tier].multiplier));
+}
+
+/**
+ * Advance only after two steady completed drills at the current pace. A steady drill needs
+ * enough answers, at least two-thirds correct, at least two-thirds inside the current paced
+ * budget, and no time-deficit extension. This is a pacing progression, never a score penalty.
+ */
+export function advancePacingProfile(
+  profile: PacingProfile,
+  questions: Question[],
+  attempts: Attempt[]
+): PacingProfile {
+  const answered = attempts.filter((attempt) => attempt.selectedOptionId);
+  if (answered.length < Math.min(2, questions.length)) return { ...profile, steadyDrills: 0 };
+
+  const correct = answered.filter((attempt) => {
+    const question = questions.find((item) => item.id === attempt.questionId);
+    return question?.correctOptionId === attempt.selectedOptionId;
+  }).length;
+  const timely = answered.filter((attempt) => {
+    const question = questions.find((item) => item.id === attempt.questionId);
+    return question && attempt.responseSeconds <= pacedSeconds(question, profile.tier);
+  }).length;
+  const hasTimeDeficit = answered.some((attempt) => attempt.extensionsSeconds > 0);
+  const steady = correct / answered.length >= 2 / 3
+    && timely / answered.length >= 2 / 3
+    && !hasTimeDeficit;
+
+  if (!steady) return { ...profile, steadyDrills: 0 };
+
+  const tierOrder: PacingTier[] = ["first-exposure", "guided", "exam", "pressure"];
+  const tierIndex = tierOrder.indexOf(profile.tier);
+  const nextSteadyDrills = profile.steadyDrills + 1;
+  if (nextSteadyDrills < 2 || tierIndex === tierOrder.length - 1) {
+    return { ...profile, steadyDrills: nextSteadyDrills };
+  }
+  return { tier: tierOrder[tierIndex + 1], steadyDrills: 0 };
+}
+
+export type SwitchAnalysis = {
+  kind: SwitchSignalKind;
+  title: string;
+  detail: string;
+  switches: number;
+  pauseSeconds: number;
+  remainingSeconds: number;
+};
+
+/**
+ * Classifies only observable answer-change behaviour. It does not claim to read intent:
+ * the review UI asks the learner for an optional confirmation after submission.
+ */
+export function classifyOptionSwitch(attempt: Attempt): SwitchAnalysis | null {
+  const events = attempt.selectionEvents ?? [];
+  const switches = events.filter((event) => event.fromOptionId && event.fromOptionId !== event.toOptionId);
+  if (!switches.length) return null;
+
+  const finalSwitch = switches[switches.length - 1];
+  const eventIndex = events.indexOf(finalSwitch);
+  const previous = events[eventIndex - 1];
+  const pauseSeconds = Math.max(0, finalSwitch.elapsedSeconds - (previous?.elapsedSeconds ?? 0));
+  const budget = Math.max(finalSwitch.allocatedBudgetSeconds, 1);
+  const lateWindow = Math.max(12, Math.round(budget * 0.12));
+  const evidencePause = Math.max(10, Math.round(budget * 0.14));
+
+  if (finalSwitch.remainingSeconds <= lateWindow) {
+    return {
+      kind: "late-reactive",
+      title: "Late response-window switch",
+      detail: `The final answer changed with ${Math.round(finalSwitch.remainingSeconds)} seconds left. This is a timing signal, not proof of guessing.`,
+      switches: switches.length,
+      pauseSeconds,
+      remainingSeconds: finalSwitch.remainingSeconds
+    };
+  }
+  if (pauseSeconds >= evidencePause && finalSwitch.remainingSeconds > budget * 0.18) {
+    return {
+      kind: "evidence-led",
+      title: "Evidence-led change",
+      detail: `A ${Math.round(pauseSeconds)}-second reconsideration happened while usable time remained. The learner can confirm whether a rule or recalculation caused it.`,
+      switches: switches.length,
+      pauseSeconds,
+      remainingSeconds: finalSwitch.remainingSeconds
+    };
+  }
+  return {
+    kind: "reconsidered",
+    title: "Reconsidered selection",
+    detail: "The answer changed outside the final rush window, but selection timing alone cannot identify the reasoning behind it.",
+    switches: switches.length,
+    pauseSeconds,
+    remainingSeconds: finalSwitch.remainingSeconds
+  };
 }
 
 export const SATO_HASTE_LAMBDA = 0.38;
